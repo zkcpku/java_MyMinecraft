@@ -1,0 +1,10 @@
+# java_MyMinecraft
+使用LWJGL 3实现的简单MC游戏
+- 放置和摧毁方块
+- 基本移动
+- 重力模拟(TODO)
+- 碰撞检测(bug)
+- 光标显示(TODO)
+- Block管理(TODO)
+- 初始地形高斯生成(TODO)
+- 等等
