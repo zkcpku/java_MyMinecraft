@@ -38,6 +38,9 @@ public class DummyGame implements IGameLogic {
 
     private static final float LIMIT_SELECT = 1.0f;
 
+
+    private static int jump_step = 0;
+
     public final GameItem selectSetBlock() {
         Vector3f selectPosition = new Vector3f(camera.getPosition());
 
@@ -143,7 +146,12 @@ public class DummyGame implements IGameLogic {
 //            camera.moveRotation(0, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
 //        else//需要考虑翻转过来的情况,即视角旋转不能超过一个范围（俯仰-90到90）
 //            camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY * dpi, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
-        cameraInc.set(0, 0, 0);//照相机位置的修改值，每个loop都会修改，默认为0，0，0，表示不按键就不动
+        cameraInc.set(0, -1, 0);//照相机位置的修改值，每个loop都会修改，默认为0，0，0，表示不按键就不动
+        if (jump_step != 0)//还在上跳过程
+        {
+            cameraInc.set(0,2,0);
+            jump_step -= 1;
+        }
         if (window.isKeyPressed(GLFW_KEY_W)) {
             cameraInc.z = -1;
         } else if (window.isKeyPressed(GLFW_KEY_S)) {
@@ -156,8 +164,18 @@ public class DummyGame implements IGameLogic {
         }
         if (window.isKeyPressed(GLFW_KEY_Z)) {
             cameraInc.y = -1;
-        } else if (window.isKeyPressed(GLFW_KEY_X)) {
-            cameraInc.y = 1;
+        } else if (window.isKeyPressed(GLFW_KEY_SPACE)) {
+            GameItem belowPosition = new GameItem();
+            belowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.floor(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
+            if (gameItems.contains(belowPosition) && jump_step == 0){//如果已经落地
+                cameraInc.y = 2;
+                jump_step = 25;//开始起跳
+            }
+
+        }
+        if (window.isKeyPressed(GLFW_KEY_B)){//可以用来打印debug信息
+            System.out.printf("camera position: %f %f %f\n",camera.getPosition().x,camera.getPosition().y,camera.getPosition().z);
+            System.out.printf("approximately block: %d %d %d\n",(int)(Math.round(camera.getPosition().x)),(int)(Math.round(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
         }
 
     }
@@ -171,18 +189,35 @@ public class DummyGame implements IGameLogic {
 //        if (gameItems.contains(tmpItem))
 //            cameraInc.set(0, 0, 0);
 
-
-        Vector3f tmpPosition = camera.tempMovePosition(cameraInc.x * CAMERA_POS_STEP, cameraInc.y * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
-        GameItem tmpCamera = new GameItem();
-        tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y)),(int)(Math.round(tmpPosition.z)));
-        if (!gameItems.contains(tmpCamera)){
-            tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 1)),(int)(Math.round(tmpPosition.z)));
-            if(!gameItems.contains(tmpCamera))
+//      检查是否卡bug
+        GameItem nowPosition = new GameItem();
+        nowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.round(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
+        if (gameItems.contains(nowPosition))
+        {
             camera.movePosition(cameraInc.x * CAMERA_POS_STEP, (cameraInc.y) * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
+        }
+        else
+        {
+            //      首先检查是否落地
+            GameItem belowPosition = new GameItem();
+            belowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.floor(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
+            if (gameItems.contains(belowPosition) && cameraInc.y <= 0)//如果已经落地
+                cameraInc.y = 0;
+
+
+            Vector3f tmpPosition = camera.tempMovePosition(cameraInc.x * CAMERA_POS_STEP, cameraInc.y * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
+            GameItem tmpCamera = new GameItem();
+            tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 0.5)),(int)(Math.round(tmpPosition.z)));
+            if (!gameItems.contains(tmpCamera)){
+                tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 1)),(int)(Math.round(tmpPosition.z)));
+                if(!gameItems.contains(tmpCamera))
+                    camera.movePosition(cameraInc.x * CAMERA_POS_STEP, (cameraInc.y) * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
+            }
         }
 
 
-        // Update camera based on mouse            
+
+        // Update camera based on mouse
             Vector2f rotVec = mouseInput.getDisplVec();
             if (rotVec.x * MOUSE_SENSITIVITY * dpi + camera.getRotation().x > 89.9)//需要考虑翻转过来的情况,即视角旋转不能超过一个范围（俯仰-90到90）
                 camera.moveRotation(0, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
