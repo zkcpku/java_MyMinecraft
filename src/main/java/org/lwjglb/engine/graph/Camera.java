@@ -63,7 +63,6 @@ public class Camera {
             tmpPosition.z += (float)Math.cos(Math.toRadians(rotation.y - 90)) * offsetX;
         }
         tmpPosition.y += offsetY;
-
         return tmpPosition;
     }
 
@@ -89,7 +88,6 @@ public class Camera {
         rotation.z = z;
 
         setFrontFromRotation();
-
     }
 
     public void moveRotation(float offsetX, float offsetY, float offsetZ) {

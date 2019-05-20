@@ -5,7 +5,7 @@ import org.lwjglb.engine.graph.Mesh;
 
 public class GameItem {
 
-    private final Mesh mesh;
+    private Mesh mesh;
     
     private final Vector3f position;
     
@@ -44,6 +44,12 @@ public class GameItem {
         return position;
     }
 
+    public void setPosition(Vector3f position) {
+        this.position.x = position.x;
+        this.position.y = position.y;
+        this.position.z = position.z;
+    }
+
     public void setPosition(float x, float y, float z) {
         this.position.x = x;
         this.position.y = y;
@@ -70,5 +76,9 @@ public class GameItem {
     
     public Mesh getMesh() {
         return mesh;
+    }
+
+    public void setMesh(Mesh mesh) {
+        this.mesh = mesh;
     }
 }

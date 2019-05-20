@@ -5,12 +5,10 @@ import org.joml.Vector3f;
 import static org.lwjgl.glfw.GLFW.*;
 import org.lwjglb.engine.GameItem;
 import org.lwjglb.engine.IGameLogic;
+import org.lwjglb.engine.Map;
 import org.lwjglb.engine.MouseInput;
 import org.lwjglb.engine.Window;
-import org.lwjglb.engine.graph.Camera;
-import org.lwjglb.engine.graph.Mesh;
-import org.lwjglb.engine.graph.OBJLoader;
-import org.lwjglb.engine.graph.Texture;
+import org.lwjglb.engine.graph.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +23,12 @@ public class DummyGame implements IGameLogic {
 
     private final Camera camera;
 
+    private Vector3f ambientLight;
+
+    private DirectionalLight directionalLight;
+
+    private Vector3f dirLightCenter;
+
 //    private GameItem[] gameItems;
 //    private GameItem[][] gameItems2;
 //    private  GameItem[][][] gameItems3;
@@ -38,8 +42,18 @@ public class DummyGame implements IGameLogic {
 
     private static final float LIMIT_SELECT = 1.0f;
 
+    private static final float jump_initial_speed = 3.0f;
+    private static final float jump_max_speed = 20f;
+    private static final float move_max_speed = 1.2f;
+    private static final float move_acc = 10f;
+    private static final float grav_acc = -9.0f;
+    private static final float frac_acc = -5.0f;
 
-    private static int jump_step = 0;
+    private static int movx, movz;
+
+    private float lightAngle;
+
+    private Hud hud;
 
     public final GameItem selectSetBlock() {
         Vector3f selectPosition = new Vector3f(camera.getPosition());
@@ -91,128 +105,157 @@ public class DummyGame implements IGameLogic {
 
     public DummyGame() {
         dpi = 5;
-        Vector3f CameraPosition = new Vector3f(0,1,0);
+        Vector3f CameraPosition = new Vector3f(0f,15f,0f);
         Vector3f CameraRo = new Vector3f(-90,180,0);
         renderer = new Renderer();
-        camera = new Camera(CameraPosition,CameraRo);
+        camera = new Camera(CameraPosition, CameraRo);
         cameraInc = new Vector3f(0, 0, 0);//照相机速度
+        lightAngle = -90;
     }
 
     @Override
     public void init(Window window) throws Exception {
         renderer.init(window);//渲染器初始化窗口
 
-        //Mesh mesh = OBJLoader.loadMesh("/models/bunny.obj");
-        Mesh mesh = OBJLoader.loadMesh("/models/cube.obj");//加载模型，画图3D
-        Texture texture = new Texture("/textures/grassblock.png");//加载图片
-        mesh.setTexture(texture);//设置好图片
-//        GameItem gameItem = new GameItem(mesh);//得到一个块item
-//        gameItem.setScale(0.5f);//大小为0.5，所以这里的块一个占1，比如-2和-3的两个块是紧邻的
-//        gameItem.setPosition(0, 0, -2);
-//
-//        GameItem gameItem1 = new GameItem(mesh);
-//        gameItem1.setScale(0.5f);
-//        gameItem1.setPosition(0,0,-3);
-//        gameItems = new GameItem[]{gameItem, gameItem1};
+        float reflectance = 0.1f;
+        Mesh mesh = OBJLoader.loadMesh("/models/cube.obj");
+        Texture texture = new Texture("/textures/grassblock.png");
+        Material material = new Material(texture, reflectance);
+        mesh.setMaterial(material);
 
-
-//        gameItems = new GameItem[5];
-//        for (int i = 0;i < 5; ++i)
-//        {
-//            gameItems[i] = new GameItem(mesh);
-//            gameItems[i].setScale(0.5f);
-//            gameItems[i].setPosition(0,0,i);
-//        }
-//          gameItems2 = new GameItem[20][20];
         gameItems = new ArrayList<GameItem>();
-          for (int i = 0;i < 30; ++i) {
-              for (int j = 0;j < 20; ++j){
-                  GameItem gameItem = new GameItem(mesh);//注意这里mesh是一样的，导致初始化的这些方格如果mesh被cleanup则全部被cleanup
-                  gameItem.setScale(0.5f);
-                  gameItem.setPosition(i, 0, j);
-                  gameItems.add(gameItem);
-              }
-          }
+        Map debugMap = new Map(32, 32);
+        int bias = 15;
+        for (int i = -15; i < 16; ++i) {
+            for (int j = -15; j < 16; ++j)
+            	for (int k = 0; k < debugMap.getHeight(i + bias, j + bias); ++k){
+                GameItem gameItem = new GameItem(mesh); //注意这里mesh是一样的，导致初始化的这些方格如果mesh被cleanup则全部被cleanup
+                gameItem.setScale(0.5f);
+                gameItem.setPosition(i, k, j);
+                gameItems.add(gameItem);
+            }
+        }
 
+        ambientLight = new Vector3f(0.3f, 0.3f, 0.3f);
+        Vector3f lightColour = new Vector3f(1, 1, 1);
+        Vector3f lightDirection = new Vector3f(1, 0, 0);
+        float lightIntensity = 1f;
+        directionalLight = new DirectionalLight(lightColour, lightDirection, lightIntensity);
+
+        hud = new Hud("DEMO");
+    }
+
+    public boolean isBlockExist(Vector3f position) {
+        GameItem tmpItem = new GameItem();
+        position.x = Math.round(position.x);
+        position.y = Math.round(position.y);
+        position.z = Math.round(position.z);
+        // System.out.printf("isBlockExist: %f %f %f\n", position.x, position.y, position.z);
+        tmpItem.setPosition(position);
+        return gameItems.contains(tmpItem);
+    }
+
+    public boolean isOnBlock(Vector3f position) {
+        // System.out.printf("isOnBlock: %f %f %f\n", position.x, position.y, position.z);
+        float dx[] = {0.5f, -0.5f}, dz[] = {0.5f, -0.5f};
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++) {
+                Vector3f pos = new Vector3f();
+                pos.x = position.x + dx[i];
+                pos.z = position.z + dz[j];
+                pos.y = position.y - 1f;
+                if (isBlockExist(pos))
+                    return true;
+            }
+        return false;
     }
 
     @Override
     public void input(Window window, MouseInput mouseInput) {
-
-//        Vector2f rotVec = mouseInput.getDisplVec();
-//        if (rotVec.x * MOUSE_SENSITIVITY * dpi + camera.getRotation().x > 90)
-//            camera.moveRotation(0, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
-//        else if(rotVec.x * MOUSE_SENSITIVITY * dpi + camera.getRotation().x < -90)
-//            camera.moveRotation(0, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
-//        else//需要考虑翻转过来的情况,即视角旋转不能超过一个范围（俯仰-90到90）
-//            camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY * dpi, rotVec.y * MOUSE_SENSITIVITY * dpi, 0);
-        cameraInc.set(0, -1, 0);//照相机位置的修改值，每个loop都会修改，默认为0，0，0，表示不按键就不动
-        if (jump_step != 0)//还在上跳过程
-        {
-            cameraInc.set(0,2,0);
-            jump_step -= 1;
-        }
         if (window.isKeyPressed(GLFW_KEY_W)) {
-            cameraInc.z = -1;
+            movz = -1;
         } else if (window.isKeyPressed(GLFW_KEY_S)) {
-            cameraInc.z = 1;
+            movz = 1;
         }
         if (window.isKeyPressed(GLFW_KEY_A)) {
-            cameraInc.x = -1;
+            movx = -1;
         } else if (window.isKeyPressed(GLFW_KEY_D)) {
-            cameraInc.x = 1;
+            movx = 1;
         }
-        if (window.isKeyPressed(GLFW_KEY_Z)) {
-            cameraInc.y = -1;
-        } else if (window.isKeyPressed(GLFW_KEY_SPACE)) {
-            GameItem belowPosition = new GameItem();
-            belowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.floor(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
-            if (gameItems.contains(belowPosition) && jump_step == 0){//如果已经落地
-                cameraInc.y = 2;
-                jump_step = 25;//开始起跳
-            }
-
+        if (window.isKeyPressed(GLFW_KEY_SPACE) && isOnBlock(camera.getPosition())) {
+            System.out.println("JUMP");
+            cameraInc.y = jump_initial_speed;
         }
         if (window.isKeyPressed(GLFW_KEY_B)){//可以用来打印debug信息
             System.out.printf("camera position: %f %f %f\n",camera.getPosition().x,camera.getPosition().y,camera.getPosition().z);
             System.out.printf("approximately block: %d %d %d\n",(int)(Math.round(camera.getPosition().x)),(int)(Math.round(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
-        }
 
+
+            //按b键测试切换背包
+            if(hud.getTestGraphItem() == "012345678")
+                hud.setTestGraphItem("876543210");
+            else
+                hud.setTestGraphItem("012345678");
+        }
     }
 
     @Override
     public void update(float interval, MouseInput mouseInput){
-        // Update camera position
-//        Vector3f tmpPostion = camera.tempMovePosition(cameraInc.x * CAMERA_POS_STEP, cameraInc.y * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
-//        GameItem tmpItem = new GameItem();
-//        tmpItem.setPosition((int)tmpPostion.x, (int)tmpPostion.y,(int)tmpPostion.z);
-//        if (gameItems.contains(tmpItem))
-//            cameraInc.set(0, 0, 0);
-
-//      检查是否卡bug
-        GameItem nowPosition = new GameItem();
-        nowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.round(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
-        if (gameItems.contains(nowPosition))
-        {
-            camera.movePosition(cameraInc.x * CAMERA_POS_STEP, (cameraInc.y) * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
-        }
-        else
-        {
-            //      首先检查是否落地
-            GameItem belowPosition = new GameItem();
-            belowPosition.setPosition((int)(Math.round(camera.getPosition().x)),(int)(Math.floor(camera.getPosition().y)),(int)(Math.floor(camera.getPosition().z)));
-            if (gameItems.contains(belowPosition) && cameraInc.y <= 0)//如果已经落地
-                cameraInc.y = 0;
-
-
-            Vector3f tmpPosition = camera.tempMovePosition(cameraInc.x * CAMERA_POS_STEP, cameraInc.y * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
-            GameItem tmpCamera = new GameItem();
-            tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 0.5)),(int)(Math.round(tmpPosition.z)));
-            if (!gameItems.contains(tmpCamera)){
-                tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 1)),(int)(Math.round(tmpPosition.z)));
-                if(!gameItems.contains(tmpCamera))
-                    camera.movePosition(cameraInc.x * CAMERA_POS_STEP, (cameraInc.y) * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
+        lightAngle += 0.1f;
+        if (lightAngle > 90) {
+            directionalLight.setIntensity(0);
+            if (lightAngle >= 180) {
+                lightAngle = -90;
             }
+        } else if (lightAngle <= -80 || lightAngle >= 80) {
+            float factor = 1 - (float) (Math.abs(lightAngle) - 80) / 10.0f;
+            directionalLight.setIntensity(factor);
+            directionalLight.getColor().y = Math.max(factor, 0.9f);
+            directionalLight.getColor().z = Math.max(factor, 0.5f);
+        } else {
+            directionalLight.setIntensity(1);
+            directionalLight.getColor().x = 1;
+            directionalLight.getColor().y = 1;
+            directionalLight.getColor().z = 1;
+        }
+        System.out.printf("lightAngle = %.2f\n", lightAngle);
+        double angRad = Math.toRadians(lightAngle);
+        directionalLight.getDirection().x = (float) Math.sin(angRad);
+        directionalLight.getDirection().y = (float) Math.cos(angRad);
+
+        // 处理重力
+        cameraInc.y += grav_acc * interval;
+        if (isOnBlock(camera.getPosition())) {
+            if (cameraInc.y < 0)
+                cameraInc.y = 0;
+            float nx = cameraInc.x + (cameraInc.x > 0? frac_acc: -frac_acc) * interval;
+            float nz = cameraInc.z + (cameraInc.z > 0? frac_acc: -frac_acc) * interval;
+            cameraInc.x = (nx * cameraInc.x > 0)? nx: 0;
+            cameraInc.z = (nz * cameraInc.z > 0)? nz: 0;
+        }
+        if (movx != 0) {
+            cameraInc.x += movx * move_acc * interval;
+            cameraInc.x = Math.min(cameraInc.x, move_max_speed);
+            cameraInc.x = Math.max(cameraInc.x, -move_max_speed);
+            movx = 0;
+        }
+        if (movz != 0) {
+            cameraInc.z += movz * move_acc * interval;
+            cameraInc.z = Math.min(cameraInc.z, move_max_speed);
+            cameraInc.z = Math.max(cameraInc.z, -move_max_speed);
+            movz = 0;
+        }
+
+
+        System.out.printf("velocity = %.2f %.2f %.2f\n", cameraInc.x, cameraInc.y, cameraInc.z);
+
+        Vector3f tmpPosition = camera.tempMovePosition(cameraInc.x * CAMERA_POS_STEP, cameraInc.y * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
+        GameItem tmpCamera = new GameItem();
+        tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 0.5)),(int)(Math.round(tmpPosition.z)));
+        if (!gameItems.contains(tmpCamera)){
+            tmpCamera.setPosition((int)(Math.round(tmpPosition.x)), (int)(Math.floor(tmpPosition.y + 1)),(int)(Math.round(tmpPosition.z)));
+            if(!gameItems.contains(tmpCamera))
+                camera.movePosition(cameraInc.x * CAMERA_POS_STEP, (cameraInc.y) * CAMERA_POS_STEP, cameraInc.z * CAMERA_POS_STEP);
         }
 
 
@@ -249,22 +292,19 @@ public class DummyGame implements IGameLogic {
         }
         if (mouseInput.isLeftButtonPressed())
         {
-//            Vector3f eyePositon = camera.getEyePosition(-25 * CAMERA_POS_STEP);
-//            System.out.printf("%d %d %d\n",(int)eyePositon.x,(int)eyePositon.y ,(int)eyePositon.z);
-
-//            Vector3f eyePositon = (camera.getPosition());
-//            eyePositon.add(camera.getFront().mul(CAMERA_POS_STEP ));
-
-//            System.out.printf("%f %f %f| %f %f %f\n",camera.getFront().x,camera.getFront().y,camera.getFront().z,camera.getPosition().x,camera.getPosition().y,camera.getPosition().z);
             try {
                 GameItem selectBlock = selectSetBlock();
                 if (selectBlock != null){
                     int new_x = (int)(selectBlock.getPosition().x);
                     int new_y = (int)(selectBlock.getPosition().y);
                     int new_z = (int)(selectBlock.getPosition().z);
-                    Mesh mesh = OBJLoader.loadMesh("/models/cube.obj");//加载模型，画图3D
-                    Texture texture = new Texture("/textures/grassblock.png");//加载图片
-                    mesh.setTexture(texture);//设置好图片
+
+                    float reflectance = 1f;
+                    Mesh mesh = OBJLoader.loadMesh("/models/cube.obj");
+                    Texture texture = new Texture("/textures/grassblock.png");
+                    Material material = new Material(texture, reflectance);
+                    mesh.setMaterial(material);
+
                     GameItem new_gameItem = new GameItem(mesh);
                     new_gameItem.setScale(0.5f);
                     new_gameItem.setPosition(new_x, new_y, new_z);
@@ -283,22 +323,24 @@ public class DummyGame implements IGameLogic {
                 System.out.println(e.getMessage());
                 System.out.print(e.toString());
             }
-
-
-
         }
     }
 
     @Override
     public void render(Window window) {
-        renderer.render(window, camera, gameItems);
+        hud.updateSize(window);
+        hud.setStatusText1(String.format("x = %.2f, y = %.2f, z = %.2f",
+                camera.getPosition().x, camera.getPosition().y, camera.getPosition().z)
+        );
+        hud.setStatusText2(String.format("lightAngle = %.2f\n", lightAngle));
+        renderer.render(window, camera, gameItems, ambientLight, directionalLight, hud);
     }
 
     @Override
     public void cleanup() {
         renderer.cleanup();
             for (GameItem gameItem : gameItems) {
-                if (gameItem == null)   continue;
+                if (gameItem == null) continue;
                 gameItem.getMesh().cleanUp();
             }
     }
