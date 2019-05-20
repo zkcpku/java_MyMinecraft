@@ -26,6 +26,8 @@ public class Mesh {
 
     private Material material;
 
+    private boolean transp;
+
     public Mesh(float[] positions, float[] textCoords, float[] normals, int[] indices) {
         FloatBuffer posBuffer = null;
         FloatBuffer textCoordsBuffer = null;
@@ -89,6 +91,14 @@ public class Mesh {
                 MemoryUtil.memFree(indicesBuffer);
             }
         }
+    }
+
+    public void setTransp(boolean transp) {
+        this.transp = transp;
+    }
+
+    public boolean getTransp() {
+        return transp;
     }
 
     public Material getMaterial() {

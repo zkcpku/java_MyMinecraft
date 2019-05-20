@@ -1,6 +1,8 @@
 package org.wtfTeam.engine;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /* Perlin noise 
  * Implementation based on javascript code at classic.minecraft.net

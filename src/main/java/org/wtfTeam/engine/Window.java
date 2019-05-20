@@ -4,6 +4,8 @@ import static org.lwjgl.glfw.GLFW.*;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
+import org.wtfTeam.game.Save;
+
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -91,7 +93,7 @@ public class Window {
         GL.createCapabilities();
 
         // Set the clear color
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 

@@ -19,4 +19,8 @@ public class Block {
     public int getY() { return y; }
 
     public int getZ() { return z; }
+
+    public boolean getTransp() {
+        return Blocklist.Bdic.get(id).transp;
+    }
 }

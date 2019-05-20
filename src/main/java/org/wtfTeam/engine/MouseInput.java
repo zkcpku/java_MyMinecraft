@@ -2,6 +2,7 @@ package org.wtfTeam.engine;
 
 import org.joml.Vector2d;
 import org.joml.Vector2f;
+
 import static org.lwjgl.glfw.GLFW.*;
 
 public class MouseInput {
@@ -52,16 +53,16 @@ public class MouseInput {
 //        glfwGetCursorPos(window.getWindowHandle(),currentPos.x,currentPos.y);
 //        if (previousPos.x > 0 && previousPos.y > 0 && inWindow) {
 //        if (previousPos.x > 0 && previousPos.y > 0) {
-            double deltax = currentPos.x - previousPos.x;
-            double deltay = currentPos.y - previousPos.y;
-            boolean rotateX = deltax != 0;
-            boolean rotateY = deltay != 0;
-            if (rotateX) {
-                displVec.y = (float) deltax;
-            }
-            if (rotateY) {
-                displVec.x = (float) deltay;
-            }
+        double deltax = currentPos.x - previousPos.x;
+        double deltay = currentPos.y - previousPos.y;
+        boolean rotateX = deltax != 0;
+        boolean rotateY = deltay != 0;
+        if (rotateX) {
+            displVec.y = (float) deltax;
+        }
+        if (rotateY) {
+            displVec.x = (float) deltay;
+        }
 //        }
 //        System.out.printf("%f %f\n",displVec.x, displVec.y);
         previousPos.x = currentPos.x;

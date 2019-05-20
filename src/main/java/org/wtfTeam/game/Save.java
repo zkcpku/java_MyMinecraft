@@ -1,17 +1,21 @@
 package org.wtfTeam.game;
 
-import java.io.*;
-import org.wtfTeam.game.*;
 import org.joml.Vector3f;
-import org.wtfTeam.engine.*;
-import org.wtfTeam.engine.graph.*;
+import org.wtfTeam.engine.Block;
+import org.wtfTeam.engine.Map;
+import org.wtfTeam.engine.graph.Camera;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class Save {
 	public static void SaveMap(Camera camera, Map mp) {
 		File wfile1, wfile2;
 		BufferedWriter writer1 = null, writer2 = null;
-		wfile1 = new File("record\\camera_record.log");
-		wfile2 = new File("record\\map_record.log");
+		wfile1 = new File("camera_record.log");
+		wfile2 = new File("map_record.log");
 		Vector3f front = new Vector3f(0, 0, 0);
     	front = camera.getPosition();
     	try {

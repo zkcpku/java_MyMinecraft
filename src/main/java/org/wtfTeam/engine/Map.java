@@ -3,7 +3,6 @@ package org.wtfTeam.engine;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Map {
 
@@ -17,6 +16,7 @@ public class Map {
         this.blocks = blocks;
         this.playerPos = playerPos;
     }
+
     public Map(ArrayList<Block> list) {
         this.blocks = list;
     }

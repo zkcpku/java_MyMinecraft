@@ -12,7 +12,6 @@ import static org.lwjgl.opengl.GL11.*;
 import org.wtfTeam.engine.graph.lights.PointLight;
 import org.wtfTeam.engine.items.GameItem;
 import org.wtfTeam.engine.items.SkyBox;
-import org.wtfTeam.game.DummyGame;
 
 public class Renderer {
 
@@ -99,7 +98,7 @@ public class Renderer {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    public void render(Window window, Camera camera, Scene scene, IHud hud) {
+    public void render(Window window, Camera camera, Scene scene, IHud huds[]) {
         clear();
 
         if (window.isResized()) {
@@ -110,15 +109,12 @@ public class Renderer {
         // Update projection and view atrices once per render cycle
         transformation.updateProjectionMatrix(FOV, window.getWidth(), window.getHeight(), Z_NEAR, Z_FAR);
         transformation.updateViewMatrix(camera);
-        //renderSkyBox(window, camera, scene);
 
-        debug_renderScene(window, camera, scene, false);
-        debug_renderScene(window, camera, scene, true);
+        renderScene(window, camera, scene);
 
-        renderSkyBox(window, camera, scene);
-        
-        
-        renderHud(window, hud);
+        // renderSkyBox(window, camera, scene);
+
+        renderHud(window, huds);
     }
 
     private void renderSkyBox(Window window, Camera camera, Scene scene) {
@@ -156,44 +152,27 @@ public class Renderer {
         sceneShaderProgram.setUniform("texture_sampler", 0);
         // Render each mesh with the associated game Items
         Map<Mesh, List<GameItem>> mapMeshes = scene.getGameMeshes();
-        for (Mesh mesh : mapMeshes.keySet()) {
-            sceneShaderProgram.setUniform("material", mesh.getMaterial());
-            mesh.renderList(mapMeshes.get(mesh), (GameItem gameItem) -> {
-                        Matrix4f modelViewMatrix = transformation.buildModelViewMatrix(gameItem, viewMatrix);
-                        sceneShaderProgram.setUniform("modelViewMatrix", modelViewMatrix);
-                    }
-            );
-        }
 
-        sceneShaderProgram.unbind();
-    }
-    
-    public void debug_renderScene(Window window, Camera camera, Scene scene, boolean is3D) {
-        sceneShaderProgram.bind();
+        for (Mesh mesh : mapMeshes.keySet())
+            if (!mesh.getTransp()) {
+                sceneShaderProgram.setUniform("material", mesh.getMaterial());
+                mesh.renderList(mapMeshes.get(mesh), (GameItem gameItem) -> {
+                            Matrix4f modelViewMatrix = transformation.buildModelViewMatrix(gameItem, viewMatrix);
+                            sceneShaderProgram.setUniform("modelViewMatrix", modelViewMatrix);
+                        }
+                );
+            }
 
-        Matrix4f projectionMatrix = transformation.getProjectionMatrix();
-        sceneShaderProgram.setUniform("projectionMatrix", projectionMatrix);
+        for (Mesh mesh : mapMeshes.keySet())
+            if (mesh.getTransp()) {
+                sceneShaderProgram.setUniform("material", mesh.getMaterial());
+                mesh.renderList(mapMeshes.get(mesh), (GameItem gameItem) -> {
+                            Matrix4f modelViewMatrix = transformation.buildModelViewMatrix(gameItem, viewMatrix);
+                            sceneShaderProgram.setUniform("modelViewMatrix", modelViewMatrix);
+                        }
+                );
+            }
 
-        Matrix4f viewMatrix = transformation.getViewMatrix();
-
-        SceneLight sceneLight = scene.getSceneLight();
-        renderLights(viewMatrix, sceneLight);
-
-        sceneShaderProgram.setUniform("texture_sampler", 0);
-        // Render each mesh with the associated game Items
-        Map<Mesh, List<GameItem>> mapMeshes = scene.getGameMeshes();
-        for (Mesh mesh : mapMeshes.keySet()) {
-        	//changes here
-        	int k = Blocklist.meshes.indexOf(mesh);
-        	if (Blocklist.Bdic.get(k).transp != is3D) continue;
-        	//end changes
-            sceneShaderProgram.setUniform("material", mesh.getMaterial());
-            mesh.renderList(mapMeshes.get(mesh), (GameItem gameItem) -> {
-                        Matrix4f modelViewMatrix = transformation.buildModelViewMatrix(gameItem, viewMatrix);
-                        sceneShaderProgram.setUniform("modelViewMatrix", modelViewMatrix);
-                    }
-            );
-        }
 
         sceneShaderProgram.unbind();
     }
@@ -226,20 +205,22 @@ public class Renderer {
         sceneShaderProgram.setUniform("directionalLight", currDirLight);
     }
 
-    private void renderHud(Window window, IHud hud) {
+    private void renderHud(Window window, IHud huds[]) {
         hudShaderProgram.bind();
 
-        Matrix4f ortho = transformation.getOrthoProjectionMatrix(0, window.getWidth(), window.getHeight(), 0);
-        for (GameItem gameItem : hud.getGameItems()) {
-            Mesh mesh = gameItem.getMesh();
-            // Set ortohtaphic and model matrix for this HUD item
-            Matrix4f projModelMatrix = transformation.buildOrtoProjModelMatrix(gameItem, ortho);
-            hudShaderProgram.setUniform("projModelMatrix", projModelMatrix);
-            hudShaderProgram.setUniform("colour", gameItem.getMesh().getMaterial().getAmbientColour());
-            hudShaderProgram.setUniform("hasTexture", gameItem.getMesh().getMaterial().isTextured() ? 1 : 0);
+        for (IHud hud : huds) {
+            Matrix4f ortho = transformation.getOrthoProjectionMatrix(0, window.getWidth(), window.getHeight(), 0);
+            for (GameItem gameItem : hud.getGameItems()) {
+                Mesh mesh = gameItem.getMesh();
+                // Set ortohtaphic and model matrix for this HUD item
+                Matrix4f projModelMatrix = transformation.buildOrtoProjModelMatrix(gameItem, ortho);
+                hudShaderProgram.setUniform("projModelMatrix", projModelMatrix);
+                hudShaderProgram.setUniform("colour", gameItem.getMesh().getMaterial().getAmbientColour());
+                hudShaderProgram.setUniform("hasTexture", gameItem.getMesh().getMaterial().isTextured() ? 1 : 0);
 
-            // Render the mesh for this HUD item
-            mesh.render();
+                // Render the mesh for this HUD item
+                mesh.render();
+            }
         }
 
         hudShaderProgram.unbind();

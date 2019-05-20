@@ -1,10 +1,11 @@
 package org.wtfTeam.engine;
 
-import java.util.*;
+import org.wtfTeam.engine.items.GameItem;
 
-import org.joml.Vector3f;
-import org.wtfTeam.engine.graph.*;
-import org.wtfTeam.engine.items.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class Generator{
 	public int Xsize;

@@ -11,4 +11,6 @@ public interface IGameLogic {
     void render(Window window);
     
     void cleanup();
+
+    void save();
 }

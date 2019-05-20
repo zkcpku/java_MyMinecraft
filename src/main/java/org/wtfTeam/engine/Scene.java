@@ -25,8 +25,6 @@ public class Scene {
         return meshMap;
     }
 
-
-
     public void addGameItem(GameItem gameItem) {
         Mesh mesh = gameItem.getMesh();
         List<GameItem> list = meshMap.get(mesh);
