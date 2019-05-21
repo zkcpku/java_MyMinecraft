@@ -107,7 +107,7 @@ public class Game implements IGameLogic {
         initMeshs();
 
         if (Main.Start_type == 0) {
-            Generator ge = new Generator(32, 32, "default");
+            Generator ge = new Generator(48, 48, Main.terrains[Main.curT]);
             map = new Map(ge.getItems());
         }
 
@@ -256,13 +256,13 @@ public class Game implements IGameLogic {
     @Override
     public void input(Window window, MouseInput mouseInput) {
         if (window.isKeyPressed(GLFW_KEY_W)) {
-            movz = -2;
+            movz = -1;
         } else if (window.isKeyPressed(GLFW_KEY_S)) {
-            movz = 2;
+            movz = 1;
         } else if (window.isKeyPressed(GLFW_KEY_A)) {
-            movx = -2;
+            movx = -1;
         } else if (window.isKeyPressed(GLFW_KEY_D)) {
-            movx = 2;
+            movx = 1;
         }
 
         if (window.isKeyPressed(GLFW_KEY_SPACE)) {

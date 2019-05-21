@@ -18,4 +18,8 @@ void main()
     {
         fragColor = colour;
     }
+    if (fragColor.a < 0.5)
+    {
+        discard;
+    }
 }

@@ -25,7 +25,7 @@ public class Blocklist {
     public Blocklist(boolean is3D, boolean nop, boolean noc, boolean transp, String name) {
         this.is3D = is3D;
         this.numero = Bmap.size();
-        System.out.println(this.numero);
+        //System.out.println(this.numero);
         this.no_place = nop;
         this.no_crash = noc;
         this.transp = transp;
@@ -35,15 +35,22 @@ public class Blocklist {
 
     public static int switchplace(int num, int dir) {
         num = (num + dir + Bdic.size()) % Bdic.size();
-        System.out.println(num);
+        //System.out.println(num);
         if (Bdic.get(num).no_place) {
             return switchplace(num, dir);
         }
-        System.out.println("ok!");
         return num;
     }
 
     public static Mesh getmesh(int num, float reflect) throws Exception {
+    	if (Bdic.get(num).name == "cactus") {
+    		Mesh mesh = OBJLoader.loadMesh("/models/cactus.obj");
+            Texture texture = new Texture("/textures/blocks/cactusblock.png");
+            Material material = new Material(texture, reflect);
+            mesh.setMaterial(material);
+            mesh.setTransp(Bdic.get(num).transp);
+            return mesh;
+    	}
         if (Bdic.get(num).is3D) {
             Mesh mesh = OBJLoader.loadMesh("/models/cube.obj");
             Texture texture = new Texture("/textures/blocks/" + Bdic.get(num).name + "block.png");

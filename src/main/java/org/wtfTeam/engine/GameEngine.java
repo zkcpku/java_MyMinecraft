@@ -1,8 +1,5 @@
 package org.wtfTeam.engine;
 
-import org.wtfTeam.game.Game;
-import org.wtfTeam.game.Save;
-
 public class GameEngine implements Runnable {
 
     public static final int TARGET_FPS = 90;

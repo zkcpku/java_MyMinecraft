@@ -120,4 +120,9 @@ void main()
     }
     
     fragColor = ambientC * vec4(ambientLight, 1) + diffuseSpecularComp;
+
+    if (fragColor.a < 0.5)
+    {
+        discard;
+    }
 }
