@@ -1,6 +1,6 @@
 package org.wtfTeam.game;
 
-import org.wtfTeam.engine.GraphItem;
+import org.wtfTeam.engine.items.GraphItem;
 import org.wtfTeam.engine.IHud;
 import org.wtfTeam.engine.Window;
 import org.wtfTeam.engine.graph.PicTexture;

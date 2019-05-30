@@ -1,7 +1,6 @@
 package org.wtfTeam.game;
 
-import org.joml.Vector4f;
-import org.wtfTeam.engine.GraphItem;
+import org.wtfTeam.engine.items.GraphItem;
 import org.wtfTeam.engine.graph.PicTexture;
 import org.wtfTeam.engine.items.GameItem;
 import org.wtfTeam.engine.IHud;

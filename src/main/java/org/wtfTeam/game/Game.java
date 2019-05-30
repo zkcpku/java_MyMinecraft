@@ -5,6 +5,7 @@ import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import org.joml.Vector4f;
 import org.wtfTeam.engine.*;
 import org.wtfTeam.engine.Window;
 import org.wtfTeam.engine.graph.lights.DirectionalLight;
@@ -20,7 +21,7 @@ import java.util.ArrayList;
 
 public class Game implements IGameLogic {
 
-    private static final float MOUSE_SENSITIVITY = 0.2f;
+    private static final float MOUSE_SENSITIVITY = 0.05f;
 
     private final Vector3f cameraInc;
 
@@ -36,12 +37,12 @@ public class Game implements IGameLogic {
 
     private static final float CAMERA_POS_STEP = 0.05f;
 
-    private static final float SELECT_SENSITIVITY = 0.5f;
+    private static final float SELECT_SENSITIVITY = 0.1f;
 
-    private static final float LIMIT_SELECT = 2.5f;
+    private static final float LIMIT_SELECT = 10.5f;
 
     private static final float jump_initial_speed = 3.0f;
-    private static final float move_max_speed = 1.2f;
+    private static float move_max_speed = 1.3f;
     private static final float move_acc = 10f;
     private static final float grav_acc = -9.0f;
     private static final float frac_acc = -5.0f;
@@ -62,13 +63,13 @@ public class Game implements IGameLogic {
 
     private long lasPut = 0, lasDig = 0;
 
-    private GameItem pig;
-
     private long lasSelGroup = 0;
+
+    private Vector4f clrCol, baseCol = new Vector4f(0.518f, 0.729f, 1.0f, 1.0f);
 
     public Game() {
         renderer = new Renderer();
-        Vector3f CameraPosition = new Vector3f(0f, 15f, 0f);
+        Vector3f CameraPosition = new Vector3f(0f, 20f, 0f);
         Vector3f CameraRo = new Vector3f(-90, 180, 0);
         camera = new Camera(CameraPosition, CameraRo);
         cameraInc = new Vector3f(0, 0, 0);//照相机速度
@@ -137,13 +138,6 @@ public class Game implements IGameLogic {
             scene.addGameItem(getGameItem(block));
         }
 
-        /*
-        pig = new GameItem();
-        pig.setPosition(2f, 1f, 2f);
-        pig.setMesh(meshs.get(1));
-        pig.setScale(0.03f);
-        scene.addGameItem(pig);
-*/
         // 设置 skybox
         float skyBoxScale = 50.0f;
         SkyBox skyBox = new SkyBox("/models/skybox.obj", "/textures/skybox.png");
@@ -192,7 +186,7 @@ public class Game implements IGameLogic {
                 pos.z = position.z + dz[j];
                 pos.y = position.y - 1f;
                 Block t = getBlock(pos);
-                if (t != null)
+                if (t != null && !t.getTransp())
                     return true;
             }
         return false;
@@ -216,24 +210,42 @@ public class Game implements IGameLogic {
     }
 
     public final Block selectSetBlock() {
-        Vector3f selectPosition = new Vector3f(camera.getPosition());
 
-        for (float dist = SELECT_SENSITIVITY * 2; dist <= LIMIT_SELECT; dist += SELECT_SENSITIVITY * 2) {
-            selectPosition.add(camera.getFront().normalize().mul(SELECT_SENSITIVITY * 2));
-            Block block = map.getBlock((int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)));
-            if (block == null) {
-                System.out.printf(" %f : %f %f %f\n", dist, selectPosition.x, selectPosition.y, selectPosition.z);
-                System.out.printf(" %f : %d %d %d\n", dist, (int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)));
-                return new Block((int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)), 0);
-            }
-        }
-        return null;
+        Block res = null;
+        float minDis = 1000000;
+        float d[] = {-0.1f, 0.1f};
+
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++)
+                for (int k = 0; k < 2; k++) {
+                    Block t = null;
+                    float dis = 10000000;
+                    boolean flag = false;
+                    Vector3f selectPosition = new Vector3f(camera.getPosition());
+                    for (float dist = SELECT_SENSITIVITY * 2; dist <= LIMIT_SELECT; dist += SELECT_SENSITIVITY) {
+                        selectPosition.add(camera.getFront().normalize().mul(SELECT_SENSITIVITY));
+                        Block block = map.getBlock((int) (Math.rint(selectPosition.x + d[i])), (int) (Math.rint(selectPosition.y + d[j])), (int) (Math.rint(selectPosition.z + d[k])));
+                        if (block != null) {
+                            flag = true;
+                            break;
+                        }
+                        // System.out.printf(" %f : %f %f %f\n", dist, selectPosition.x, selectPosition.y, selectPosition.z);
+                        // System.out.printf(" %f : %d %d %d\n", dist, (int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)));
+                        t = new Block((int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)), 0);
+                        dis = dist;
+                    }
+                    if (flag && dis < minDis) {
+                        minDis = dis;
+                        res = t;
+                    }
+                }
+        return res;
     }
 
     public final Block selectBlock() {
         Vector3f selectPosition = new Vector3f(camera.getPosition());
 
-        for (float dist = SELECT_SENSITIVITY; dist <= LIMIT_SELECT; dist += SELECT_SENSITIVITY) {
+        for (float dist = SELECT_SENSITIVITY * 2; dist <= LIMIT_SELECT; dist += SELECT_SENSITIVITY) {
             selectPosition.add(camera.getFront().normalize().mul(SELECT_SENSITIVITY));
             Block block = map.getBlock((int) (Math.rint(selectPosition.x)), (int) (Math.rint(selectPosition.y)), (int) (Math.rint(selectPosition.z)));
             System.out.printf("%f %f %f\n", selectPosition.x, selectPosition.y, selectPosition.z);
@@ -274,6 +286,7 @@ public class Game implements IGameLogic {
         if (window.isKeyReleased(GLFW_KEY_F) && f_pressed) {
             flying = !flying;
             f_pressed = false;
+            move_max_speed = flying? 2.0f: 1.3f;
         }
         if (window.isKeyPressed(GLFW_KEY_F)) {
             f_pressed = true;
@@ -313,27 +326,19 @@ public class Game implements IGameLogic {
         }
     }
 
-    private Vector3f pigVec = new Vector3f(0f, 0f, 0f);
-    private long lasPigVecChange = 0;
-
     @Override
     public void update(float interval, MouseInput mouseInput) {
-        /*
-        scene.removeGameItem(pig);
-        if (System.currentTimeMillis() - lasPigVecChange > 500 + 500 * Math.random()) {
-            System.out.println("!");
-            Vector3f t = new Vector3f((float) (Math.random() - 0.5) * 0.01f, (float) (Math.random() - 0.5) * 0.001f, (float) (Math.random() - 0.5) * 0.01f);
-            pigVec.add(t);
-            lasPigVecChange = System.currentTimeMillis();
-        }
-        pig.getPosition().add(pigVec);
-        scene.addGameItem(pig);
-*/
         DirectionalLight directionalLight = scene.getSceneLight().getDirectionalLight();
         lightAngle += 0.1f;
+        clrCol = new Vector4f(baseCol);
+        if (lightAngle >= -90 && lightAngle <= 90) {
+            clrCol.mul((float) Math.abs(Math.cos(lightAngle * Math.PI / 180)));
+        } else {
+            clrCol = new Vector4f(0f, 0f, 0f, 0f);
+        }
         if (lightAngle > 90) {
             directionalLight.setIntensity(0);
-            if (lightAngle >= 180) {
+            if (lightAngle >= 135) {
                 lightAngle = -90;
             }
         } else if (lightAngle <= -80 || lightAngle >= 80) {
@@ -377,6 +382,17 @@ public class Game implements IGameLogic {
                 cameraInc.y = Math.min(cameraInc.y, move_max_speed);
                 cameraInc.y = Math.max(cameraInc.y, -move_max_speed);
                 movy = 0;
+            }
+
+            if (onBlock && cameraInc.y < 0) {
+                /*
+                if (cameraInc.y < -0.5) {
+                    while (isOnBlock2(camera.getPosition()))
+                        camera.setPosition(camera.getPosition().x, camera.getPosition().y + 0.01f, camera.getPosition().z);
+                    camera.setPosition(camera.getPosition().x, camera.getPosition().y - 0.01f, camera.getPosition().z);
+                }
+                 */
+                cameraInc.y = 0;
             }
         }
 
@@ -440,7 +456,7 @@ public class Game implements IGameLogic {
                     int new_y = block.getY();
                     int new_z = block.getZ();
 
-                    if (!camera.getPosition().equals(new Vector3f(new_x, new_y, new_z), 0.5f)) {
+                    if (!camera.getPosition().equals(new Vector3f(new_x, new_y, new_z), 0.1f)) {
                         if (map.getBlock(new_x, new_y, new_z) == null) {
                             map.addBlock(new_x, new_y, new_z, toolbar.getSelId());
                             scene.addGameItem(getGameItem(new Block(new_x, new_y, new_z, toolbar.getSelId())));
@@ -456,6 +472,7 @@ public class Game implements IGameLogic {
 
     @Override
     public void render(Window window) {
+        window.setClearColor(clrCol.x, clrCol.y, clrCol.z, clrCol.w);
         hud.updateSize(window);
         hud.setStatusText1(String.format("x = %.2f, y = %.2f, z = %.2f",
                 camera.getPosition().x, camera.getPosition().y, camera.getPosition().z)
@@ -468,7 +485,7 @@ public class Game implements IGameLogic {
 
     @Override
     public void save() {
-        Save.SaveMap(camera, map);
+        Save.saveMap(camera, map);
     }
 
     @Override

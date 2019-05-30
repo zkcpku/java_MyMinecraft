@@ -1,27 +1,27 @@
 package org.wtfTeam.engine.items;
 
 import org.wtfTeam.engine.Utils;
-import org.wtfTeam.engine.graph.FontTexture;
 import org.wtfTeam.engine.graph.Material;
 import org.wtfTeam.engine.graph.Mesh;
+import org.wtfTeam.engine.graph.PicTexture;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PicItem extends GameItem {
+public class GraphItem extends GameItem {
 
     private static final float ZPOS = 0.0f;
 
     private static final int VERTICES_PER_QUAD = 4;
 
-    private final FontTexture fontTexture;
+    private final PicTexture picTexture;
 
     private String text;
 
-    public PicItem(String text, FontTexture fontTexture) {
+    public GraphItem(String text, PicTexture picTexture) throws Exception {
         super();
         this.text = text;
-        this.fontTexture = fontTexture;
+        this.picTexture = picTexture;
         setMesh(buildMesh());
     }
 
@@ -35,7 +35,7 @@ public class PicItem extends GameItem {
 
         float startx = 0;
         for (int i = 0; i < numChars; i++) {
-            FontTexture.CharInfo charInfo = fontTexture.getCharInfo(characters[i]);
+            PicTexture.CharInfo charInfo = picTexture.getCharInfo(characters[i]);
 
             // Build a character tile composed by two triangles
 
@@ -43,23 +43,23 @@ public class PicItem extends GameItem {
             positions.add(startx); // x
             positions.add(0.0f); //y
             positions.add(ZPOS); //z
-            textCoords.add((float) charInfo.getStartX() / (float) fontTexture.getWidth());
+            textCoords.add((float) charInfo.getStartX() / (float) picTexture.getWidth());
             textCoords.add(0.0f);
             indices.add(i * VERTICES_PER_QUAD);
 
             // Left Bottom vertex
             positions.add(startx); // x
-            positions.add((float) fontTexture.getHeight()); //y
+            positions.add((float) picTexture.getHeight()); //y
             positions.add(ZPOS); //z
-            textCoords.add((float) charInfo.getStartX() / (float) fontTexture.getWidth());
+            textCoords.add((float) charInfo.getStartX() / (float) picTexture.getWidth());
             textCoords.add(1.0f);
             indices.add(i * VERTICES_PER_QUAD + 1);
 
             // Right Bottom vertex
             positions.add(startx + charInfo.getWidth()); // x
-            positions.add((float) fontTexture.getHeight()); //y
+            positions.add((float) picTexture.getHeight()); //y
             positions.add(ZPOS); //z
-            textCoords.add((float) (charInfo.getStartX() + charInfo.getWidth()) / (float) fontTexture.getWidth());
+            textCoords.add((float) (charInfo.getStartX() + charInfo.getWidth()) / (float) picTexture.getWidth());
             textCoords.add(1.0f);
             indices.add(i * VERTICES_PER_QUAD + 2);
 
@@ -67,7 +67,7 @@ public class PicItem extends GameItem {
             positions.add(startx + charInfo.getWidth()); // x
             positions.add(0.0f); //y
             positions.add(ZPOS); //z
-            textCoords.add((float) (charInfo.getStartX() + charInfo.getWidth()) / (float) fontTexture.getWidth());
+            textCoords.add((float) (charInfo.getStartX() + charInfo.getWidth()) / (float) picTexture.getWidth());
             textCoords.add(0.0f);
             indices.add(i * VERTICES_PER_QUAD + 3);
 
@@ -82,7 +82,7 @@ public class PicItem extends GameItem {
         float[] textCoordsArr = Utils.listToArray(textCoords);
         int[] indicesArr = indices.stream().mapToInt(i -> i).toArray();
         Mesh mesh = new Mesh(posArr, textCoordsArr, normals, indicesArr);
-        mesh.setMaterial(new Material(fontTexture.getTexture()));
+        mesh.setMaterial(new Material(picTexture.getTexture()));
         return mesh;
     }
 

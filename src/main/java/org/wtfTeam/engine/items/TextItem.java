@@ -4,7 +4,6 @@ import org.wtfTeam.engine.Utils;
 import org.wtfTeam.engine.graph.FontTexture;
 import org.wtfTeam.engine.graph.Material;
 import org.wtfTeam.engine.graph.Mesh;
-import org.wtfTeam.engine.items.GameItem;
 
 import java.util.ArrayList;
 import java.util.List;
